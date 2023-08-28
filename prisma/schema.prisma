@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["clientExtensions", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions      = [pgcrypto]
+}
+
+model company {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  description String?      @db.VarChar(255)
+  name        String       @db.VarChar(255)
+  created_at  DateTime     @default(now()) @db.Timestamp(6)
+  updated_at  DateTime     @default(now()) @db.Timestamp(6)
+  user_id     String       @db.Uuid
+  tenant_id   String       @db.VarChar(255)
+  user        user         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  invitation  invitation[]
+  outlet      outlet[]
+}
+
+model invitation {
+  id                               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id                       String   @db.Uuid
+  invitee_id                       String   @db.Uuid
+  inviter_id                       String   @db.Uuid
+  status                           String?  @db.VarChar(255)
+  created_at                       DateTime @default(now()) @db.Timestamp(6)
+  updated_at                       DateTime @default(now()) @db.Timestamp(6)
+  company                          company  @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_invitation_invitee_idTouser user     @relation("invitation_invitee_idTouser", fields: [invitee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_invitation_inviter_idTouser user     @relation("invitation_inviter_idTouser", fields: [inviter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model outlet {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String?  @db.VarChar(255)
+  address    String?  @db.VarChar(255)
+  city       String?  @db.VarChar(255)
+  state      String?  @db.VarChar(255)
+  zip_code   String?  @db.VarChar(255)
+  company_id String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  company    company  @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tool       tool[]
+}
+
+model rental {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rental_date DateTime  @default(now()) @db.Timestamp(6)
+  return_date DateTime? @db.Timestamp(6)
+  tool_id     String    @db.Uuid
+  customer_id String    @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  updated_at  DateTime  @default(now()) @db.Timestamp(6)
+  user        user      @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tool        tool      @relation(fields: [tool_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model tool {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String?  @db.VarChar(255)
+  description  String?  @db.VarChar(255)
+  price        Int?
+  availability Boolean?
+  outlet_id    String   @db.Uuid
+  created_at   DateTime @default(now()) @db.Timestamp(6)
+  updated_at   DateTime @default(now()) @db.Timestamp(6)
+  rental       rental[]
+  outlet       outlet   @relation(fields: [outlet_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user {
+  id                                     String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                                  String       @unique @db.VarChar(255)
+  firstName                              String?      @db.VarChar(255)
+  lastName                               String?      @db.VarChar(255)
+  roq_user_id                            String       @db.VarChar(255)
+  tenant_id                              String       @db.VarChar(255)
+  created_at                             DateTime     @default(now()) @db.Timestamp(6)
+  updated_at                             DateTime     @default(now()) @db.Timestamp(6)
+  company                                company[]
+  invitation_invitation_invitee_idTouser invitation[] @relation("invitation_invitee_idTouser")
+  invitation_invitation_inviter_idTouser invitation[] @relation("invitation_inviter_idTouser")
+  rental                                 rental[]
+}
